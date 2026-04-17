@@ -44,6 +44,11 @@ app.get("/api/health", (req, res) => {
     res.status(200).json({ status: "OK", timestamp: new Date().toISOString() });
 });
 
+// Health check endpoint for deployment verification
+app.get("/health", (req, res) => {
+    res.status(200).json({ status: "ok", message: "Server is running" });
+});
+
 // ─── API Routes ───────────────────────────────────────────────────────────
 app.use("/api/auth", authRoutes);
 app.use("/api/chats", chatRoutes);

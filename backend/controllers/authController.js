@@ -1,5 +1,8 @@
 const User = require("../models/User");
 const generateToken = require("../utils/generateToken");
+const { OAuth2Client } = require("google-auth-library");
+
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 /**
  * @route   POST /api/auth/register
@@ -133,4 +136,65 @@ const getMe = async (req, res, next) => {
     }
 };
 
-module.exports = { register, login, logout, getMe };
+/**
+ * @route   POST /api/auth/google
+ * @desc    Authenticate with Google ID Token
+ * @access  Public
+ */
+const googleLogin = async (req, res, next) => {
+    try {
+        const { credential } = req.body;
+
+        if (!credential) {
+            return res.status(400).json({ success: false, message: "Token is required" });
+        }
+
+        // Verify Google token
+        const ticket = await client.verifyIdToken({
+            idToken: credential,
+            audience: process.env.GOOGLE_CLIENT_ID,
+        });
+
+        const payload = ticket.getPayload();
+        const { email, name, picture } = payload;
+
+        // Find or create user
+        let user = await User.findOne({ email });
+
+        if (!user) {
+            // Create user for first-time Google login
+            // Password is set to a random string as it's not used for OAuth users
+            user = await User.create({
+                name,
+                email,
+                avatar: { url: picture }, // Use Google profile pic
+                password: Math.random().toString(36).slice(-16),
+            });
+        }
+
+        // Set user online
+        user.isOnline = true;
+        user.lastSeen = Date.now();
+        await user.save({ validateBeforeSave: false });
+
+        const token = generateToken(user._id);
+
+        res.status(200).json({
+            success: true,
+            message: "Google login successful",
+            token,
+            user: {
+                _id: user._id,
+                name: user.name,
+                email: user.email,
+                avatar: user.avatar,
+                isOnline: user.isOnline,
+            },
+        });
+    } catch (error) {
+        console.error("Google login error:", error);
+        res.status(401).json({ success: false, message: "Google authentication failed" });
+    }
+};
+
+module.exports = { register, login, logout, getMe, googleLogin };

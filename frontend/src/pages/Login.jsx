@@ -3,9 +3,11 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
 import toast from "react-hot-toast";
 
+import { GoogleLogin } from "@react-oauth/google";
+
 const Login = () => {
     const navigate = useNavigate();
-    const { login, isLoading } = useAuthStore();
+    const { login, googleLogin, isLoading } = useAuthStore();
     const [form, setForm] = useState({ email: "", password: "" });
 
     const handleChange = (e) =>
@@ -16,6 +18,16 @@ const Login = () => {
         const result = await login(form.email, form.password);
         if (result.success) {
             toast.success("Welcome back!");
+            navigate("/");
+        } else {
+            toast.error(result.message);
+        }
+    };
+
+    const handleGoogleSuccess = async (response) => {
+        const result = await googleLogin(response.credential);
+        if (result.success) {
+            toast.success("Login successful!");
             navigate("/");
         } else {
             toast.error(result.message);
@@ -90,6 +102,26 @@ const Login = () => {
                             )}
                         </button>
                     </form>
+
+                    {/* Divider */}
+                    <div className="relative my-8">
+                        <div className="absolute inset-0 flex items-center">
+                            <div className="w-full border-t border-white/10"></div>
+                        </div>
+                        <div className="relative flex justify-center text-xs uppercase">
+                            <span className="bg-dark-200 px-2 text-gray-500">Or continue with</span>
+                        </div>
+                    </div>
+
+                    {/* Google Login Button */}
+                    <div className="flex justify-center">
+                        <GoogleLogin
+                            onSuccess={handleGoogleSuccess}
+                            onError={() => toast.error("Google Login Failed")}
+                            theme="filled_black"
+                            shape="pill"
+                        />
+                    </div>
 
                     <p className="text-center text-sm text-gray-400 mt-6">
                         Don't have an account?{" "}
