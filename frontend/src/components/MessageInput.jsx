@@ -1,12 +1,13 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useAuthStore } from "../store/authStore";
 import { useChatStore } from "../store/chatStore";
 import { useSocket } from "../context/SocketContext";
 import api from "../lib/axios";
 import toast from "react-hot-toast";
+import EmojiPicker from "emoji-picker-react";
 
 /**
- * MessageInput — text input + image upload button at the bottom of the chat window.
+ * MessageInput — text input + image upload button + emoji picker at the bottom of the chat window.
  * Emits typing events via socket while the user is typing.
  */
 const MessageInput = ({ chatId, receiverId, receiver }) => {
@@ -17,8 +18,22 @@ const MessageInput = ({ chatId, receiverId, receiver }) => {
     const [isSending, setIsSending] = useState(false);
     const [filePreview, setFilePreview] = useState(null);
     const [selectedFile, setSelectedFile] = useState(null);
+    const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const fileRef = useRef(null);
     const typingTimer = useRef(null);
+    const emojiPickerRef = useRef(null);
+    const textAreaRef = useRef(null);
+
+    // Close emoji picker when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target)) {
+                setShowEmojiPicker(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
 
     // Emit typing / stopTyping socket events with debounce
     const handleTyping = useCallback(
@@ -41,6 +56,12 @@ const MessageInput = ({ chatId, receiverId, receiver }) => {
     const handleTextChange = (e) => {
         setText(e.target.value);
         handleTyping(e.target.value);
+    };
+
+    const handleEmojiClick = (emojiData) => {
+        setText((prev) => prev + emojiData.emoji);
+        // refocus the textarea after picking an emoji
+        textAreaRef.current?.focus();
     };
 
     const handleFileChange = (e) => {
@@ -67,6 +88,7 @@ const MessageInput = ({ chatId, receiverId, receiver }) => {
         // Stop typing indicator
         if (socket) socket.emit("stopTyping", { receiverId });
         clearTimeout(typingTimer.current);
+        setShowEmojiPicker(false);
 
         setIsSending(true);
         try {
@@ -76,8 +98,6 @@ const MessageInput = ({ chatId, receiverId, receiver }) => {
 
             if (selectedFile) {
                 formData.append("file", selectedFile);
-                // Type is determined by backend's cloudinary resource_type: auto
-                // but we can pass a hint if needed.
             }
 
             if (text.trim()) {
@@ -89,11 +109,8 @@ const MessageInput = ({ chatId, receiverId, receiver }) => {
             });
 
             const message = data.message;
-
-            // Add to local store immediately (optimistic UI)
             addMessage(message);
 
-            // Emit to receiver via socket
             if (socket) {
                 socket.emit("sendMessage", { ...message, receiver: receiverId });
             }
@@ -116,7 +133,25 @@ const MessageInput = ({ chatId, receiverId, receiver }) => {
     };
 
     return (
-        <div className="bg-dark-200 border-t border-white/5 px-4 py-3">
+        <div className="bg-dark-200 border-t border-white/5 px-4 py-3 relative">
+            {/* Emoji Picker Overlay */}
+            {showEmojiPicker && (
+                <div
+                    ref={emojiPickerRef}
+                    className="absolute bottom-full left-4 mb-2 z-50 shadow-2xl animate-fade-in"
+                >
+                    <EmojiPicker
+                        theme="dark"
+                        onEmojiClick={handleEmojiClick}
+                        lazyLoadEmojis={true}
+                        searchDisabled={false}
+                        skinTonesDisabled={true}
+                        width={300}
+                        height={400}
+                    />
+                </div>
+            )}
+
             {/* File preview */}
             {filePreview && (
                 <div className="mb-2 relative inline-flex items-center gap-3 bg-dark-100 p-2 rounded-xl border border-white/10 animate-fade-in">
@@ -147,6 +182,18 @@ const MessageInput = ({ chatId, receiverId, receiver }) => {
             )}
 
             <div className="flex items-end gap-3">
+                {/* Emoji Toggle Button */}
+                <button
+                    onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                    className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-colors ${showEmojiPicker ? 'bg-primary-600 text-white' : 'bg-dark-100 text-gray-400 hover:text-white hover:bg-gray-700'
+                        }`}
+                    title="Emojis"
+                >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </button>
+
                 {/* File upload button */}
                 <button
                     onClick={() => fileRef.current?.click()}
@@ -168,6 +215,7 @@ const MessageInput = ({ chatId, receiverId, receiver }) => {
 
                 {/* Text input */}
                 <textarea
+                    ref={textAreaRef}
                     value={text}
                     onChange={handleTextChange}
                     onKeyDown={handleKeyDown}

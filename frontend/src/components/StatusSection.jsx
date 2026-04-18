@@ -29,9 +29,9 @@ const StatusSection = ({ onOpenStatus }) => {
         }
     };
 
-    // My statuses (if any)
-    const myStatusGroup = feed.find((f) => f.user?._id === user?._id);
-    const otherStatuses = feed.filter((f) => f.user?._id !== user?._id);
+    // My statuses (if any) — use toString() to be safe with IDs
+    const myStatusGroup = feed.find((f) => f.user?._id.toString() === user?._id.toString());
+    const otherStatuses = feed.filter((f) => f.user?._id.toString() !== user?._id.toString());
 
     return (
         <div className="flex flex-col h-full bg-dark-300">
@@ -44,18 +44,27 @@ const StatusSection = ({ onOpenStatus }) => {
                 {/* My Status */}
                 <div>
                     <h3 className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-4 px-1">My Status</h3>
-                    <div className="flex items-center gap-4 group cursor-pointer">
+                    <div className="flex items-center gap-4 group">
                         <div className="relative">
-                            <div className={`w-14 h-14 rounded-full p-0.5 border-2 ${myStatusGroup ? "border-primary-500" : "border-dashed border-gray-600"
-                                }`}>
+                            <div
+                                onClick={() => myStatusGroup && onOpenStatus(myStatusGroup)}
+                                className={`w-14 h-14 rounded-full p-0.5 border-2 transition-transform active:scale-95 ${myStatusGroup ? "border-primary-500 cursor-pointer" : "border-dashed border-gray-600"
+                                    }`}>
                                 <Avatar user={user} size="full" />
                             </div>
                             <label className="absolute bottom-0 right-0 w-5 h-5 bg-primary-600 rounded-full border-2 border-dark-300 flex items-center justify-center text-white cursor-pointer hover:bg-primary-500 transition-colors">
                                 <input type="file" className="hidden" accept="image/*,video/*" onChange={handleFileChange} disabled={isUploading} />
-                                <span className="text-lg font-bold leading-none">+</span>
+                                {isUploading ? (
+                                    <div className="w-3 h-3 border-2 border-white border-t-transparent animate-spin rounded-full" />
+                                ) : (
+                                    <span className="text-lg font-bold leading-none">+</span>
+                                )}
                             </label>
                         </div>
-                        <div className="flex-1" onClick={() => myStatusGroup && onOpenStatus(myStatusGroup)}>
+                        <div
+                            className={`flex-1 ${myStatusGroup ? "cursor-pointer" : ""}`}
+                            onClick={() => myStatusGroup && onOpenStatus(myStatusGroup)}
+                        >
                             <p className="text-white font-medium">My Status</p>
                             <p className="text-xs text-gray-500">
                                 {myStatusGroup
@@ -73,11 +82,11 @@ const StatusSection = ({ onOpenStatus }) => {
                         <div className="space-y-4">
                             {otherStatuses.map((group) => (
                                 <div
-                                    key={group.user?._id}
+                                    key={group.user?._id.toString()}
                                     className="flex items-center gap-4 cursor-pointer group"
                                     onClick={() => onOpenStatus(group)}
                                 >
-                                    <div className="w-14 h-14 rounded-full p-0.5 border-2 border-primary-500">
+                                    <div className="w-14 h-14 rounded-full p-0.5 border-2 border-primary-500 transition-transform active:scale-95">
                                         <Avatar user={group.user} size="full" />
                                     </div>
                                     <div className="flex-1 border-b border-white/5 pb-4 group-last:border-none">

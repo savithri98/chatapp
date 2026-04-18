@@ -52,21 +52,23 @@ const MessageBubble = ({ message, showAvatar = false }) => {
             >
                 {/* Media Content */}
                 {message.type === "image" && (
-                    <a href={message.content} target="_blank" rel="noopener noreferrer" className="block overflow-hidden rounded-xl">
-                        <img
-                            src={message.content}
-                            alt="Shared"
-                            className="max-w-full h-auto object-cover hover:scale-[1.02] transition-transform duration-300"
-                        />
-                    </a>
+                    <div className="rounded-xl overflow-hidden max-w-[280px] max-h-[320px] bg-black/5">
+                        <a href={message.content} target="_blank" rel="noopener noreferrer" className="block">
+                            <img
+                                src={message.content}
+                                alt="Shared"
+                                className="max-w-full max-h-[320px] block mx-auto hover:scale-[1.01] transition-transform duration-300"
+                            />
+                        </a>
+                    </div>
                 )}
 
                 {message.type === "video" && (
-                    <div className="overflow-hidden rounded-xl bg-black/20">
+                    <div className="rounded-xl overflow-hidden max-w-[280px] max-h-[320px] bg-black/20">
                         <video
                             src={message.content}
                             controls
-                            className="max-w-full h-auto block"
+                            className="max-w-full max-h-[320px] block mx-auto"
                         />
                     </div>
                 )}

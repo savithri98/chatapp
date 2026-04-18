@@ -33,6 +33,7 @@ connectDB();
 const allowedOrigins = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+    "https://chatapp-wsuz.vercel.app", // User's Vercel frontend
     process.env.CLIENT_URL,
 ].filter(Boolean);
 
